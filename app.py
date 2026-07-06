@@ -7,13 +7,10 @@ st.set_page_config(
     layout="centered"
 )
 
-import os
 import re
 import string
-import traceback
 import joblib
 import nltk
-
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
@@ -24,25 +21,9 @@ nltk.download("stopwords", quiet=True)
 nltk.download("wordnet", quiet=True)
 nltk.download("omw-1.4", quiet=True)
 
-# Debug information
-st.write("Current directory:", os.getcwd())
-st.write("Files:", os.listdir("."))
-
-# Load model
-try:
-    model = joblib.load("model.pkl")
-    st.success("✅ model.pkl loaded")
-except Exception:
-    st.code(traceback.format_exc())
-    st.stop()
-
-# Load vectorizer
-try:
-    tfidf = joblib.load("tfidf_vectorizer.pkl")
-    st.success("✅ tfidf_vectorizer.pkl loaded")
-except Exception:
-    st.code(traceback.format_exc())
-    st.stop()
+# Load model and vectorizer
+model = joblib.load("model.pkl")
+tfidf = joblib.load("tfidf_vectorizer.pkl")
 
 # Initialize
 stop_words = set(stopwords.words("english"))
@@ -67,8 +48,9 @@ def preprocess(text):
     return " ".join(tokens)
 
 st.title("📰 Fake News Detection App")
+st.write("Paste a news article below to check whether it is Fake or Real.")
 
-user_input = st.text_area("Enter news text")
+user_input = st.text_area("Enter news text", height=200)
 
 if st.button("Predict"):
     if not user_input.strip():
@@ -80,7 +62,7 @@ if st.button("Predict"):
 
         if hasattr(model, "predict_proba"):
             confidence = max(model.predict_proba(vector)[0]) * 100
-            st.write(f"Confidence: {confidence:.2f}%")
+            st.write(f"**Confidence:** {confidence:.2f}%")
 
         if str(prediction).upper() == "FAKE":
             st.error("🚨 Fake News")
