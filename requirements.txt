@@ -1,4 +1,5 @@
 ﻿streamlit
-joblib
+joblib==1.5.2
 nltk
 scikit-learn==1.7.2
+numpy==2.3.5
