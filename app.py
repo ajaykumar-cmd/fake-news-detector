@@ -12,23 +12,27 @@ import string
 import joblib
 import nltk
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
-# Download NLTK resources
-nltk.download("punkt", quiet=True)
+# Download required NLTK resources
 nltk.download("stopwords", quiet=True)
 nltk.download("wordnet", quiet=True)
 nltk.download("omw-1.4", quiet=True)
 
-# Load model and vectorizer
-model = joblib.load("model.pkl")
-tfidf = joblib.load("tfidf_vectorizer.pkl")
+# Cache model loading
+@st.cache_resource
+def load_files():
+    model = joblib.load("model.pkl")
+    vectorizer = joblib.load("tfidf_vectorizer.pkl")
+    return model, vectorizer
 
-# Initialize
+model, tfidf = load_files()
+
+# Initialize stopwords and lemmatizer
 stop_words = set(stopwords.words("english"))
 lemmatizer = WordNetLemmatizer()
 
+# Text cleaning
 def clean_text(text):
     text = str(text).lower()
     text = re.sub(r"<.*?>", " ", text)
@@ -40,13 +44,22 @@ def clean_text(text):
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
+# Preprocessing
 def preprocess(text):
     cleaned = clean_text(text)
-    tokens = word_tokenize(cleaned)
-    tokens = [w for w in tokens if w not in stop_words]
-    tokens = [lemmatizer.lemmatize(w) for w in tokens]
+
+    # Simple tokenization (avoids punkt/punkt_tab dependency)
+    tokens = cleaned.split()
+
+    # Remove stopwords
+    tokens = [word for word in tokens if word not in stop_words]
+
+    # Lemmatize
+    tokens = [lemmatizer.lemmatize(word) for word in tokens]
+
     return " ".join(tokens)
 
+# UI
 st.title("📰 Fake News Detection App")
 st.write("Paste a news article below to check whether it is Fake or Real.")
 
@@ -61,10 +74,10 @@ if st.button("Predict"):
         prediction = model.predict(vector)[0]
 
         if hasattr(model, "predict_proba"):
-            confidence = max(model.predict_proba(vector)[0]) * 100
-            st.write(f"**Confidence:** {confidence:.2f}%")
+            confidence = model.predict_proba(vector).max() * 100
+            st.write(f"### Confidence: {confidence:.2f}%")
 
-        if str(prediction).upper() == "FAKE":
-            st.error("🚨 Fake News")
+        if str(prediction).strip().upper() == "FAKE":
+            st.error("🚨 Prediction: Fake News")
         else:
-            st.success("✅ Real News")
+            st.success("✅ Prediction: Real News")
